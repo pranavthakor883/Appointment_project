@@ -2,6 +2,10 @@ import psycopg
 import os
 from dotenv import load_dotenv
 
+
+#eoor 1 load_dotenv not intialized
+load_dotenv()
+
 conn = psycopg.connect(
     host=os.getenv("DB_HOST"),
     port=os.getenv("DB_PORT"),
