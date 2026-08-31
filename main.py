@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException
 from pydantic import BaseModel
 from database import conn
 
@@ -21,19 +21,34 @@ class UserCreate(BaseModel):
 def create_user(user:UserCreate):
      
     cursor = conn.cursor()
-     
-    cursor.execute(
-         """insert into users (name,email,password_hash,role) values (%s,%s,%s,%s)""",
-         (user.name,user.email,user.password,user.role)
-     )
-     
-    conn.commit()
-     
-    cursor.close()
-     
-    return{
-            "message":"User created succesfully" ,
-        }
+    
+    
+    try: 
+        cursor.execute(
+            """insert into users (name,email,password_hash,role) values (%s,%s,%s,%s) RETURNING id, name, email, role""",
+            (user.name,user.email,user.password,user.role)
+        )
+        
+        new_user = cursor.fetchone()
+        conn.commit()
+        
+        return{
+                "message":"User created succesfully" ,
+                "user":{
+                    "id": new_user[0],
+                    "name": new_user[1],
+                    "email": new_user[2],
+                    "role": new_user[3],
+                }
+            }
+    
+    except Exception as e:
+        
+        cursor.rollback()
+        raise HTTPException( status_code = 400, detail = str(e) )
+    
+    finally:
+        cursor.close()
      
      
     
