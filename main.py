@@ -25,6 +25,7 @@ def create_user(user:UserCreate):
     
     
     try: 
+        #in this hashpw using the bytes for hasing the password nad also for decode use the hash
         password_hash = bcrypt.hashpw(user.password.encode("utf-8"),bcrypt.gensalt()).decode("utf-8")
         cursor.execute(
             """insert into users (name,email,password_hash,role) values (%s,%s,%s,%s) RETURNING id, name, email, role""",
