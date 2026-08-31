@@ -99,5 +99,45 @@ def login(user:UserLogin):
     finally:
         cursor.close()
         
+
+#Provider create
+class ProviderCreate(BaseModel):
+    user_id: int
+    specialization: str
+    description: str | None = None
+    
+@app.post("/providers")
+def create_provider(provider: ProviderCreate):
+
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            """insert into providers(user_id, specialization, description) values(%s, %s, %s) returning id, user_id, specialization, description, created_at""",
+            (provider.user_id, provider.specialization, provider.description)
+        )
+
+        new_provider = cursor.fetchone()
+
+        conn.commit()
+
+        return {
+            "message": "Provider created successfully",
+            "provider": {
+                "id": new_provider[0],
+                "user_id": new_provider[1],
+                "specialization": new_provider[2],
+                "description": new_provider[3],
+                "created_at": new_provider[4]
+            }
+        }
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400,detail=str(e))
+
+    finally:
+        cursor.close()
+        
         
             
