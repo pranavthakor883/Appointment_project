@@ -139,5 +139,43 @@ def create_provider(provider: ProviderCreate):
     finally:
         cursor.close()
         
+
+#Get the providers
+@app.get("/providers")
+def get_providers():
+    
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            '''
+            select p.id,p.user_id,u.name,u.email,p.specialization,p.description,p.created_at 
+            from providers p 
+            join users u 
+            on p.user_id = u.id 
+            order by p.id
+            '''
+            
+        )
         
+        providers = cursor.fetchall()
+        
+        return[
+            {
+                "id": provider[0],
+                "user_id": provider[1],
+                "name": provider[2],
+                "email": provider[3],
+                "specialization": provider[4],
+                "description": provider[5],
+                "created_at": provider[6]
+            }
+            for provider in providers
+        ] 
+    finally:
+        cursor.close()
+    
+
+    
+    
             
