@@ -72,13 +72,12 @@ def login(user:UserLogin):
             (user.email,)    
         )
         
-        #fetch row in python using the fetchcone
+        #fetch exist_user row in python using the fetchcone
         exist_user = cursor.fetchone()
         
         if exist_user is None:
             raise HTTPException(status_code=401,detail="Invalid email or password")
         
-        #exist_user[3] means the column of 3 where password_hash
         #but you also know what you gave the order in select query 
         password_hash = exist_user[4]
         
@@ -99,4 +98,6 @@ def login(user:UserLogin):
     
     finally:
         cursor.close()
+        
+        
             
