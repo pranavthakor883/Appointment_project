@@ -32,7 +32,7 @@ request body.
 - Python 3.11+
 - FastAPI — API layer
 - PostgreSQL — the only supported database
-- SQLAlchemy (2.0 style) — ORM, all database access
+- psycopg (v3) — raw SQL, all database access
 - Pydantic v2 — request/response validation
 - Alembic — schema migrations
 - JWT — authentication
@@ -53,12 +53,12 @@ appointment_booking_api/
 │   │   ├── deps.py          # shared dependencies: get_db, get_current_user, require_role
 │   │   └── routers/         # one module per resource: auth, users, providers,
 │   │                        # services, availability, appointments, reviews
-│   ├── models/              # SQLAlchemy ORM models, one module per aggregate
+│   ├── models/              # table definitions / row dataclasses, one module per aggregate
 │   ├── schemas/             # Pydantic models, mirrors models/ file-for-file
 │   ├── services/            # business logic — the actual rules live here
 │   ├── db/
-│   │   ├── base.py          # DeclarativeBase + model imports for Alembic autogenerate
-│   │   └── session.py       # engine + SessionLocal factory
+│   │   ├── base.py          # shared SQL helpers / row-to-dict adapters
+│   │   └── session.py       # psycopg connection pool + get_conn factory
 │   └── core/
 │       └── security.py      # password hashing, JWT encode/decode
 ├── alembic/
@@ -97,7 +97,7 @@ not in anticipation of one.
 - Route handlers stay thin: validate input via a schema, call one service
   function, return a response schema. No queries, no `if` chains, no
   business rules in a router.
-- Service functions take a `Session` as their first argument and plain
+- Service functions take a psycopg `Connection` as their first argument and plain
   arguments or Pydantic models after — never a `Request` object. Business
   logic must not know that HTTP exists.
 - Raise `HTTPException` in routers and `deps`. In services, raise domain
@@ -129,15 +129,18 @@ not in anticipation of one.
   short. Validate signature and expiry on every request.
 - Error responses must not leak whether an email exists, which query failed, or
   any stack trace. Generic message out, detail to the logs.
-- All queries go through SQLAlchemy's parameter binding. No f-string SQL, ever.
+- All queries pass values as psycopg parameters (`%s` placeholders with a
+  parameter tuple, or `psycopg.sql` for identifiers). No f-string SQL, ever,
+  and never `%`-format or concatenate a value into a query string.
 
 ## Database Rules
 
 - PostgreSQL only. Do not write code that quietly falls back to SQLite.
-- All access through the SQLAlchemy ORM and an injected `Session` — no module
+- All access through psycopg cursors on an injected connection — no module
   level connections, no connection created at import time.
-- Sessions are per-request, provided by a `get_db` dependency that always
-  closes. One transaction per request; commit in the service layer.
+- Connections are per-request, checked out of a pool by a `get_db` dependency
+  that always returns them. One transaction per request; commit in the service
+  layer, and roll back on the connection (`conn.rollback()`), not the cursor.
 - Every table has an integer or UUID primary key and `created_at` /
   `updated_at` timestamps.
 - Foreign keys are declared explicitly with intentional `ondelete` behavior.
