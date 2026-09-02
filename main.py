@@ -314,5 +314,41 @@ def get_provider_services(provider_id: int):
         cursor.close()
         
 
+#create Availability
+class AvailabilityCreate(BaseModel):
+    provider_id:int
+    day_of_week:int
+    start_time:str
+    end_time:str
+    
+@app.post("/availability")
+def create_availability(availability:AvailabilityCreate):
+    
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            '''
+            insert into availability(provider_id,day_of_week,start_time,end_time) values(%s,%s,%s,%s) returning id,provider_id,day_of_week,start_time,end_time
+            ''',
+            (availability.provider_id,availability.day_of_week,availability.start_time,availability.end_time)
+        )
+        
+        new_availability=cursor.fetchone()
+        conn.commit()
 
+        return{
+            "id":new_availability[0],
+            "provider_id":new_availability[1],
+            "day_of_week":new_availability[2],
+            "start_time":new_availability[3],
+            "end_time":new_availability[4]
+        }
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400,detail=str(e))
+
+    finally:
+        cursor.close()
             
