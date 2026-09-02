@@ -347,7 +347,10 @@ def create_availability(availability:AvailabilityCreate):
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=400,detail=str(e))
+        raise HTTPException(
+        status_code=400,
+        detail="Availability overlaps with existing availability"
+        )
 
     finally:
         cursor.close()
