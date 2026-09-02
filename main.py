@@ -174,8 +174,47 @@ def get_providers():
         ] 
     finally:
         cursor.close()
+
+              
+#Get a single provider
+@app.get("/providers/{provider_id}")
+def get_provider(provider_id:int):
+    
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            '''
+            select p.id,p.user_id,u.name,u.email,
+                p.specialization,p.description,p.created_at
+                from providers p
+                join users u
+            on p.user_id = u.id
+            where p.id = %s
+            ''',
+            (provider_id,)
+            
+        )
+        
+        provider = cursor.fetchone()
+        
+        if provider is None:
+            raise HTTPException(status_code=404,detail="Provider not found") 
+        
+        return {
+            "id" : provider[0],
+            "user_id":provider[1],
+            "name":provider[2],
+            "email":provider[3],
+            "specialization":provider[4],
+            "description":provider[5],
+            "created_at":provider[6]
+        }
+    finally:
+        cursor.close()
     
 
     
     
+#Show the services
             
