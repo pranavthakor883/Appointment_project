@@ -255,5 +255,64 @@ def create_service(service:ServiceCreate):
         cursor.close()
  
     
-#Show the services
+#Show the services along with the single provider
+# Get services of a provider
+@app.get("/providers/{provider_id}/services")
+def get_provider_services(provider_id: int):
+
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            '''
+            select p.id, u.name, u.email,
+                   p.specialization, p.description,
+                   s.id, s.name, s.description,
+                   s.duration_minutes, s.price, s.created_at
+            from providers p
+            join users u
+                on p.user_id = u.id
+            join services s
+                on p.id = s.provider_id
+            where p.id = %s
+            order by s.id
+            ''',
+            (provider_id,)
+        )
+
+        services = cursor.fetchall()
+
+        if not services:
+            raise HTTPException(
+                status_code=404,
+                detail="Provider or services not found"
+            )
+
+        #This returns the row of list of users and providers
+        return {
+            "provider": {
+                "id": services[0][0],
+                "name": services[0][1],
+                "email": services[0][2],
+                "specialization": services[0][3],
+                "description": services[0][4]
+            },
+            "services": [
+                {
+                    "id": service[5],
+                    "name": service[6],
+                    "description": service[7],
+                    "duration_minutes": service[8],
+                    "price": service[9],
+                    "created_at": service[10]
+                }
+                for service in services
+            ]
+        }
+
+    finally:
+        cursor.close()
+        
+
+
             
