@@ -337,4 +337,42 @@ def create_availability(availability:AvailabilityCreate):
 
     finally:
         cursor.close()
+        
+#Show the availability along with the single provider
+# Get availability of a provider
+@app.get("/providers/{provider_id}/availability")
+def get_provider_availability(provider_id:int):
+    
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            '''
+            select id,provider_id,day_of_week,start_time,end_time from availability where provider_id=%s
+            order by day_of_week,start_time
+            ''',
+            (provider_id,)
+        )
+        
+        new_availabilities = cursor.fetchall()
+        
+        if not new_availabilities:
+            raise HTTPException(status_code=404,detail="Availability not found")
+        
+        return[
+            {
+            "id":new_availability[0],
+            "provider_id":new_availability[1],
+            "day_of_week":new_availability[2],
+            "start_time":new_availability[3],
+            "end_time":new_availability[4]
+            }
+            for new_availability in new_availabilities
+        ]
+    
+    finally:
+        cursor.close()
+    
+    
+    
             
