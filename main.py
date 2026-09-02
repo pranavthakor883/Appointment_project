@@ -118,7 +118,6 @@ def create_provider(provider: ProviderCreate):
         )
 
         new_provider = cursor.fetchone()
-
         conn.commit()
 
         return {
@@ -176,6 +175,46 @@ def get_providers():
         cursor.close()
     
 
+#Create a Services
+class ServiceCreate(BaseModel):
+    provider_id:int
+    name:str
+    description:str | None=None
+    duration_minutes:int
+    price:float
     
+@app.post("/services")
+def create_service(service:ServiceCreate):
+    
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            '''insert into services(provider_id,name,description,duration_minutes,price) values(%s,%s,%s,%s,%s) returning id,provider_id,name,description,duration_minutes,price''',
+            (service.provider_id,service.name,service.description,service.duration_minutes,service.price)
+        )
+        
+        new_service = cursor.fetchone()
+        
+        conn.commit()
+        
+        return{
+            "message":"Service Created Successfully",
+            "service":{
+                "id" : new_service[0],
+                "provider_id":new_service[1],
+                "name":new_service[2],
+                "description":new_service[3],
+                "duration_minutes":new_service[4],
+                "price":new_service[5]            
+            }
+        }
+    except Exception as e:
+        cursor.rollback()
+        raise HTTPException(status_code=400,detail=str(e))
+    
+    finally:   
+        cursor.close()
+ 
     
             
