@@ -265,16 +265,10 @@ def get_provider_services(provider_id: int):
     try:
         cursor.execute(
             '''
-            select p.id, u.name, u.email,
-                   p.specialization, p.description,
-                   s.id, s.name, s.description,
+            select s.id, s.name, s.description,
                    s.duration_minutes, s.price, s.created_at
-            from providers p
-            join users u
-                on p.user_id = u.id
-            join services s
-                on p.id = s.provider_id
-            where p.id = %s
+            from services s
+            where s.provider_id = %s
             order by s.id
             ''',
             (provider_id,)
@@ -288,23 +282,15 @@ def get_provider_services(provider_id: int):
                 detail="Provider or services not found"
             )
 
-        #This returns the row of list of users and providers
         return {
-            "provider": {
-                "id": services[0][0],
-                "name": services[0][1],
-                "email": services[0][2],
-                "specialization": services[0][3],
-                "description": services[0][4]
-            },
             "services": [
                 {
-                    "id": service[5],
-                    "name": service[6],
-                    "description": service[7],
-                    "duration_minutes": service[8],
-                    "price": service[9],
-                    "created_at": service[10]
+                    "id": service[0],
+                    "name": service[1],
+                    "description": service[2],
+                    "duration_minutes": service[3],
+                    "price": service[4],
+                    "created_at": service[5]
                 }
                 for service in services
             ]
@@ -314,41 +300,4 @@ def get_provider_services(provider_id: int):
         cursor.close()
         
 
-#create Availability
-class AvailabilityCreate(BaseModel):
-    provider_id:int
-    day_of_week:int
-    start_time:str
-    end_time:str
     
-@app.post("/availability")
-def create_availability(availability:AvailabilityCreate):
-    
-    cursor = conn.cursor()
-    
-    try:
-        cursor.execute(
-            '''
-            insert into availability(provider_id,day_of_week,start_time,end_time) values(%s,%s,%s,%s) returning id,provider_id,day_of_week,start_time,end_time
-            ''',
-            (availability.provider_id,availability.day_of_week,availability.start_time,availability.end_time)
-        )
-        
-        new_availability=cursor.fetchone()
-        conn.commit()
-
-        return{
-            "id":new_availability[0],
-            "provider_id":new_availability[1],
-            "day_of_week":new_availability[2],
-            "start_time":new_availability[3],
-            "end_time":new_availability[4]
-        }
-
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=400,detail=str(e))
-
-    finally:
-        cursor.close()
-            
