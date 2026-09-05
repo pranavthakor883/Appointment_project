@@ -4,12 +4,21 @@ from app.api.deps import get_current_user,require_role
 from app.db.session import conn
 from app.schemas.service import ServiceCreate
 from app.services import services as services_service
+from app.services import providers as providers_service
 
 router = APIRouter()
 
 
 @router.post("/services")
 def create_service(service: ServiceCreate,current_user=Depends(require_role("provider"))):
+    
+    provider = providers_service.get_provider_by_user_id(conn,(current_user[0]))
+    
+    if provider is None or service.provider_id != provider[0]:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only manage your own availability"
+        )
 
     try:
         new_service = services_service.create_service(conn, service)
