@@ -48,3 +48,24 @@ def get_user_by_email(conn: psycopg.Connection, email: str) -> tuple | None:
 
     finally:
         cursor.close()
+
+
+def get_user_by_id(conn: psycopg.Connection, user_id: int) -> tuple | None:
+    """Return (id, name, role, email) or None.
+
+    No password_hash here, unlike get_user_by_email. This row is what
+    get_current_user hands to every protected endpoint, so the hash must not
+    be in it — one stray `return current_user` would put it on the wire.
+    """
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            """select id, name, role, email from users where id=%s""",
+            (user_id,)
+        )
+
+        return cursor.fetchone()
+
+    finally:
+        cursor.close()
