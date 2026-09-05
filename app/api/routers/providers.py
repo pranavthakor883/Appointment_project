@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException
-
+from fastapi import APIRouter,Depends ,HTTPException
+from app.api.deps import get_current_user,require_role
 from app.db.session import conn
 from app.schemas.provider import ProviderCreate
 from app.services import providers as providers_service
@@ -8,7 +8,7 @@ router = APIRouter()
 
 
 @router.post("/providers")
-def create_provider(provider: ProviderCreate):
+def create_provider(provider: ProviderCreate,current_user=Depends(require_role("admin"))):
 
     try:
         new_provider = providers_service.create_provider(conn, provider)

@@ -1,14 +1,25 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter,Depends, HTTPException
 
+from app.api.deps import get_current_user,require_role
 from app.db.session import conn
 from app.schemas.availability import AvailabilityCreate
 from app.services import availability as availability_service
+from app.services import providers as providers_service
 
 router = APIRouter()
 
 
 @router.post("/availability")
-def create_availability(availability: AvailabilityCreate):
+def create_availability(availability: AvailabilityCreate,current_user=Depends(require_role("provider"))):
+    
+    #current_user[0] is users.id, availability.provider_id is providers.id
+    provider = providers_service.get_provider_by_user_id(conn, current_user[0])
+
+    if provider is None or availability.provider_id != provider[0]:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only manage your own availability"
+        )
 
     try:
         new_availability = availability_service.create_availability(conn, availability)

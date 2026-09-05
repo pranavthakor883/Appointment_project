@@ -68,3 +68,23 @@ def get_provider(conn: psycopg.Connection, provider_id: int) -> tuple | None:
 
     finally:
         cursor.close()
+
+
+def get_provider_by_user_id(conn: psycopg.Connection, user_id: int) -> tuple | None:
+    """Return (id,) for this user's provider profile, or None.
+
+    providers.id and users.id are different counters — this is the bridge
+    between the caller's identity and the provider rows they own.
+    """
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            '''select id from providers where user_id = %s''',
+            (user_id,)
+        )
+
+        return cursor.fetchone()
+
+    finally:
+        cursor.close()
