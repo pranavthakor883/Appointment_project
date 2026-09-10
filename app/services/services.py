@@ -2,7 +2,7 @@
 
 import psycopg
 
-from app.schemas.service import ServiceCreate
+from app.schemas.service import ServiceCreate,ServiceUpdate
 
 
 def create_service(conn: psycopg.Connection, service: ServiceCreate) -> tuple:
@@ -49,3 +49,74 @@ def list_provider_services(conn: psycopg.Connection, provider_id: int) -> list[t
 
     finally:
         cursor.close()
+
+
+def get_service_by_id(conn: psycopg.Connection, service_id: int) -> tuple | None:
+    """Return (id, provider_id, name, description, duration_minutes, price) or None.
+
+    provider_id is at index 1 so the caller can check ownership before
+    letting an update through.
+    """
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            '''
+            select id, provider_id, name, description, duration_minutes, price
+            from services
+            where id = %s
+            ''',
+            (service_id,)
+        )
+
+        return cursor.fetchone()
+
+    finally:
+        cursor.close()
+
+
+def update_service(conn: psycopg.connection,service_id:int,service:ServiceUpdate) -> tuple | None:
+    '''update a service  and return the updated row'''
+    
+    cursor = conn.cursor()
+    
+    try: 
+        update_data = service.model_dump(exclude_unset=True) 
+        
+        if not update_data: 
+            return None 
+        
+        fields = [] 
+        values = []
+          
+        for field, value in update_data.items():
+            fields.append(f"{field} = %s") 
+            values.append(value) 
+        
+        values.append(service_id) 
+        
+        query = f""" 
+            update services 
+            set {", ".join(fields)} 
+            where id = %s 
+            returning id, provider_id, name, description, duration_minutes, price 
+            """ 
+            
+        cursor.execute(query, values) 
+            
+        updated_service = cursor.fetchone() 
+        
+        if updated_service is None: 
+            return None 
+        
+        conn.commit() 
+        
+        return updated_service 
+    
+    except Exception: 
+        conn.rollback() 
+        raise 
+    
+    finally: cursor.close()
+    
+    
